@@ -4,6 +4,12 @@ PhotoFolio is a modern React-based application for managing photo albums and ima
 
 ---
 
+# Visit App 💁‍♂️:
+
+Visit the app at [https://benevolent-squirrel-ba058f.netlify.app/](https://benevolent-squirrel-ba058f.netlify.app/).
+
+---
+
 ## Features ✨
 
 - **Album Management**: Create and manage multiple albums effortlessly.
@@ -51,8 +57,6 @@ npm install
 ```bash
 npm start
 ```
-
-Visit the app at [http://localhost:3000](http://localhost:3000).
 
 ---
 
