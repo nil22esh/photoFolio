@@ -3,6 +3,9 @@ import ImageForm from "./ImageForm";
 import Carousel from "./Carousel";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import db from "../firebaseConfig";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import Spinner from "react-spinner-material";
 import "../App.css";
 
 export default function ImagesList({ albumId, albumName, goBack }) {
@@ -13,9 +16,10 @@ export default function ImagesList({ albumId, albumName, goBack }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch images from Firestore for the selected album
   const fetchImages = async () => {
+    setIsLoading(true);
     try {
       const querySnapshot = await getDocs(collection(db, "images"));
       setImagesList(
@@ -23,45 +27,42 @@ export default function ImagesList({ albumId, albumName, goBack }) {
           .map((doc) => ({ id: doc.id, ...doc.data() }))
           .filter((image) => image.albumId === albumId)
       );
+      toast.success("Images loaded successfully!");
     } catch (error) {
+      toast.error("Error fetching images. Please try again later.");
       console.error("Error fetching images:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchImages();
+  }, [albumId]);
 
   const handleEditImage = (image) => {
     setSelectedImage(image);
     setIsModalOpen(true);
   };
 
-  const handleOpenCarousel = (index) => {
-    setCurrentImageIndex(index);
-    setIsCarouselOpen(true);
-  };
-
   const handleDeleteImage = async (id) => {
     try {
       await deleteDoc(doc(db, "images", id));
-      fetchImages(); // Refresh images after deletion
+      fetchImages();
+      toast.success("Image deleted successfully!");
     } catch (error) {
+      toast.error("Error deleting image. Please try again later.");
       console.error("Error deleting image:", error);
     }
   };
 
-  useEffect(() => {
-    fetchImages();
-  }, []);
-
-  const handleOpenModal = () => setIsModalOpen(true);
-  const handleCloseModal = () => setIsModalOpen(false);
-  const toggleSearchBar = () => setIsSearchOpen(!isSearchOpen);
-
-  // Filter images based on search query
   const filteredImages = imagesList.filter((image) =>
     image.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <>
+      <ToastContainer />
       {isModalOpen && (
         <div className="imageModal">
           <div className="image-modal-content">
@@ -76,7 +77,6 @@ export default function ImagesList({ albumId, albumName, goBack }) {
           </div>
         </div>
       )}
-      {/* Carousel */}
       {isCarouselOpen && (
         <Carousel
           images={filteredImages}
@@ -89,7 +89,7 @@ export default function ImagesList({ albumId, albumName, goBack }) {
           <button className="go-back-btn" onClick={goBack}>
             <img
               src="https://cdn-icons-png.flaticon.com/128/2099/2099238.png"
-              alt="goBack"
+              alt="Go Back"
               className="goBack"
             />
           </button>
@@ -103,55 +103,60 @@ export default function ImagesList({ albumId, albumName, goBack }) {
               className="search-field"
             />
           )}
-          <button className="search-btn" onClick={toggleSearchBar}>
+          <button
+            className="search-btn"
+            onClick={() => setIsSearchOpen(!isSearchOpen)}
+          >
             <img
               src="https://cdn-icons-png.flaticon.com/128/5636/5636698.png"
-              alt="search"
+              alt="Search"
               className="search"
             />
           </button>
-          <button
-            type="submit"
-            className="create-btn"
-            onClick={() => setIsModalOpen(true)}
-          >
+          <button className="create-btn" onClick={() => setIsModalOpen(true)}>
             Add Image
           </button>
         </div>
-        <div className="images-list">
-          {filteredImages.length > 0 ? (
-            filteredImages.map((image, index) => (
-              <div className="image-card" key={image.id}>
-                <div className="image-hover-icons">
-                  <img
-                    src="https://cdn-icons-png.flaticon.com/128/1828/1828911.png"
-                    alt="Edit"
-                    className="icon edit-icon"
-                    onClick={() => handleEditImage(image)}
-                  />
-                  <img
-                    src="https://cdn-icons-png.flaticon.com/128/3405/3405244.png"
-                    alt="Delete"
-                    className="icon delete-icon"
-                    onClick={() => handleDeleteImage(image.id)}
-                  />
+        {isLoading ? (
+          <div className="spinner-container">
+            <Spinner radius={50} color={"#4caf50"} stroke={5} visible={true} />
+          </div>
+        ) : (
+          <div className="images-list">
+            {filteredImages.length > 0 ? (
+              filteredImages.map((image, index) => (
+                <div className="image-card" key={image.id}>
+                  <div className="image-hover-icons">
+                    <img
+                      src="https://cdn-icons-png.flaticon.com/128/1828/1828911.png"
+                      alt="Edit"
+                      className="icon edit-icon"
+                      onClick={() => handleEditImage(image)}
+                    />
+                    <img
+                      src="https://cdn-icons-png.flaticon.com/128/3405/3405244.png"
+                      alt="Delete"
+                      className="icon delete-icon"
+                      onClick={() => handleDeleteImage(image.id)}
+                    />
+                  </div>
+                  <div className="image-container">
+                    <img
+                      src={image.url}
+                      alt={image.name}
+                      className="image-icon"
+                      onClick={() => setIsCarouselOpen(true)}
+                      width={40}
+                    />
+                  </div>
+                  <h3>{image.name}</h3>
                 </div>
-                <div className="image-container">
-                  <img
-                    src={image.url}
-                    alt={image.name}
-                    className="image-icon"
-                    onClick={() => handleOpenCarousel(index)}
-                    width={40}
-                  />
-                </div>
-                <h3>{image.name}</h3>
-              </div>
-            ))
-          ) : (
-            <h1>No Images Found!</h1>
-          )}
-        </div>
+              ))
+            ) : (
+              <h1>No Images Found!</h1>
+            )}
+          </div>
+        )}
       </div>
     </>
   );
